@@ -1,56 +1,51 @@
 package action
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/Revolyssup/screenlimit/db"
 )
 
 type Cron interface {
-	Run() bool
+	Run(chan bool) //Will send a true/false signal
 }
 
-func RunCron(c Cron) bool {
-	return c.Run()
+func RunCron(ch chan bool, c Cron) {
+	c.Run(ch)
 }
 
-type Restarter struct {
+type Dialog struct {
 	timer int
 	store *db.Store
 }
 
-func NewRestarter(timer int, store *db.Store) *Restarter {
-	return &Restarter{
+func NewDialog(timer int, store *db.Store) *Dialog {
+	return &Dialog{
 		timer: timer,
 		store: store,
 	}
 }
-func (r *Restarter) Run() bool {
-	temp := make(chan bool, 1)
+
+func (r *Dialog) Run(ch chan bool) {
+	fmt.Println("going to open dialog")
+	pass := make(chan info, 10)
 	go func() {
-		for i := 0; i < 3; i++ {
-			fmt.Println(3-i, " attempts left")
-			reader := bufio.NewReader(os.Stdin)
-			fmt.Println("PASSWORD>")
-			text, _ := reader.ReadString('\n')
-			// convert CRLF to LF
-			text = strings.Replace(text, "\n", "", -1)
-			fmt.Println("text is ", text)
-			if text == r.store.GetPassword() {
-				temp <- true
+		fmt.Println("Enter password in ", r.timer, " seconds")
+		select {
+		case <-time.After(time.Second * 10):
+			ch <- false
+			return
+		case pswrd := <-pass:
+			if pswrd.pass == r.store.Pass {
+				fmt.Println("password is correct which is ", pswrd.pass)
+				ch <- true
+			} else {
+				fmt.Printf("password is incorrect.expected %s got %s ", r.store.Pass, pswrd.pass)
+				ch <- false
 			}
+			return
 		}
-		temp <- false
 	}()
-	fmt.Println("Enter password in ", r.timer, " seconds")
-	select {
-	case <-time.After(time.Second * 10):
-		return false
-	case this := <-temp:
-		return this
-	}
+	RunApp(pass)
 }

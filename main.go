@@ -17,15 +17,16 @@ func main() {
 		fmt.Println("could not initialize store ", err.Error())
 		return
 	}
-	rs := action.NewRestarter(10, store)
+	rs := action.NewDialog(10, store)
 	go server.Run("1401", store)
 	for {
 	WAIT:
+		ch := make(chan bool, 1)
 		fmt.Println("Enter password in 10 seconds or pc will reboot")
 		select {
 		case <-time.After(10 * time.Second):
-			ok := action.RunCron(rs)
-			if ok {
+			action.RunCron(ch, rs)
+			if <-ch {
 				goto WAIT
 			}
 			panic("rebooted")
