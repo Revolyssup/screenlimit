@@ -4,46 +4,43 @@ import (
 	"fmt"
 )
 
-type Roles struct {
+type Role struct {
 	Role string `gorm:"role"`
 	Pass string `gorm:"pass"`
-	db   *DB
+}
+type RoleStore struct {
+	db *DB
 }
 
-func NewRole(role string, pass string, db *DB) (*Roles, error) {
-	st := &Roles{}
-	err := db.Where("role = ?", role).First(st).Error
+func NewRoleStore(role string, pass string, db *DB) *RoleStore {
+	return &RoleStore{db: db}
+}
+func (s *RoleStore) GetRole(role string) (*Role, error) {
+	s.db.mx.Lock()
+	defer s.db.mx.Unlock()
+	r := Role{}
+	err := s.db.Where("role = ?", role).Find(&r).Error
+	return &r, err
+}
+
+func (s *RoleStore) SetRole(role string, pass string) (*Role, error) {
+	s.db.mx.Lock()
+	defer s.db.mx.Unlock()
+	st := &Role{}
+	err := s.db.Where("role = ?", role).First(st).Error
 	if err != nil || st.Pass == "" {
 		fmt.Println("password ", st.Pass)
-		st := &Roles{
+		st := &Role{
 			Role: role,
 			Pass: pass,
 		}
-		err = db.Create(st).Error
+		err = s.db.Create(st).Error
 		return st, err
 	}
 	if err != nil {
 		fmt.Println("not initializing store ", err.Error())
+		return nil, err
 	}
-	st.db = db
 	fmt.Println("ashish,pass is ", st.Pass)
-	return st, err
-}
-func (s *Roles) GetPassword() string {
-	s.db.mx.Lock()
-	defer s.db.mx.Unlock()
-	st := s.Pass
-	return st
-}
-
-func (s *Roles) SetPassword(role string, pass string) {
-	s.db.mx.Lock()
-	defer s.db.mx.Unlock()
-	fmt.Println("setting new pass")
-	s.Pass = pass
-	s.Role = role
-	err := s.db.Model(&Roles{}).Where("role = ?", role).Update("pass", pass).Error
-	if err != nil {
-		fmt.Println("err ", err.Error())
-	}
+	return st, nil
 }

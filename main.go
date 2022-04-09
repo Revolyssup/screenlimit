@@ -12,7 +12,7 @@ import (
 
 const PASS = "default"
 const PORT = "1401"
-const role = "ADMIN"
+const role = "child"
 
 func main() {
 	database, err := db.NewDB()
@@ -20,9 +20,10 @@ func main() {
 		fmt.Println("could not initialize store ", err.Error())
 		return
 	}
-	store, err := db.NewRole(role, PASS, database)
+	store := db.NewRoleStore(role, PASS, database)
+	_, err = store.SetRole(role, PASS)
 	if err != nil {
-		fmt.Println("could not initialize store ", err.Error())
+		fmt.Println("could not set password for children due to: ", err.Error())
 		return
 	}
 	events := db.NewEvents(time.Now().GoString(), database)

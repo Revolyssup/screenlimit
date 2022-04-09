@@ -16,10 +16,16 @@ type PassRequest struct {
 	Pass string `json:"pass"`
 }
 
-func Run(port string, store *db.Roles, events *db.Events) {
-	http.HandleFunc("/api/pass", func(w http.ResponseWriter, r *http.Request) {
+func Run(port string, store *db.RoleStore, events *db.Events) {
+	http.HandleFunc("/api/roles", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			fmt.Fprint(w, "password is "+store.GetPassword())
+			role := r.URL.Query().Get("role")
+			r, err := store.GetRole(role)
+			if err != nil {
+				fmt.Fprint(w, "err "+err.Error())
+				return
+			}
+			fmt.Fprint(w, "password is "+r.Pass, " \n for role ", r.Role)
 			return
 		}
 		if r.Method == http.MethodPost {
@@ -34,7 +40,7 @@ func Run(port string, store *db.Roles, events *db.Events) {
 				fmt.Fprint(w, "err "+err.Error())
 				return
 			}
-			store.SetPassword(p.Role, p.Pass)
+			store.SetRole(p.Role, p.Pass)
 		}
 	})
 
