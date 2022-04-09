@@ -16,7 +16,7 @@ type PassRequest struct {
 	Pass string `json:"pass"`
 }
 
-func Run(port string, store *db.RoleStore, events *db.Events) {
+func Run(port string, store *db.RoleStore, events *db.EventStore) {
 	http.HandleFunc("/api/roles", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			role := r.URL.Query().Get("role")

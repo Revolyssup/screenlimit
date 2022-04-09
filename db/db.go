@@ -18,6 +18,6 @@ func NewDB() (*DB, error) {
 		return nil, err
 	}
 	db.AutoMigrate(&Role{})
-	db.AutoMigrate(&Events{})
+	db.AutoMigrate(&Event{})
 	return &DB{db, sync.Mutex{}}, nil
 }
