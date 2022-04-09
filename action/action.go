@@ -17,10 +17,10 @@ func RunCron(ch chan bool, c Cron) {
 
 type Dialog struct {
 	timer int
-	store *db.Store
+	store *db.Roles
 }
 
-func NewDialog(timer int, store *db.Store) *Dialog {
+func NewDialog(timer int, store *db.Roles) *Dialog {
 	return &Dialog{
 		timer: timer,
 		store: store,
@@ -33,7 +33,7 @@ func (r *Dialog) Run(ch chan bool) {
 	go func() {
 		fmt.Println("Enter password in ", r.timer, " seconds")
 		select {
-		case <-time.After(time.Second * 10):
+		case <-time.After(time.Second * time.Duration(r.timer)):
 			ch <- false
 			return
 		case pswrd := <-pass:
@@ -47,5 +47,6 @@ func (r *Dialog) Run(ch chan bool) {
 			return
 		}
 	}()
+
 	RunApp(pass)
 }
