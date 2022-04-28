@@ -16,7 +16,7 @@ type EventStore struct {
 	db *DB
 }
 
-func NewEvents(time string, db *DB) *EventStore {
+func NewEventsStore(time string, db *DB) *EventStore {
 	ev := EventStore{
 		db: db,
 	}
@@ -37,6 +37,7 @@ func (e *EventStore) Add(time string, action string, at actions.Type) error {
 		fmt.Println("err ", err.Error())
 		return err
 	}
+	fmt.Println("added event ", action)
 	return nil
 }
 

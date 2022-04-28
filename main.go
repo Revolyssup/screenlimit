@@ -8,11 +8,14 @@ import (
 	"github.com/Revolyssup/screenlimit/db"
 	"github.com/Revolyssup/screenlimit/db/actions"
 	"github.com/Revolyssup/screenlimit/server"
+	"github.com/Revolyssup/screenlimit/sysstats"
 )
 
 const PASS = "default"
 const PORT = "1401"
 const role = "child"
+
+var appsToMonitor = []string{"brave", "slack"}
 
 func main() {
 	database, err := db.NewDB()
@@ -26,9 +29,11 @@ func main() {
 		fmt.Println("could not set password for children due to: ", err.Error())
 		return
 	}
-	events := db.NewEvents(time.Now().GoString(), database)
+	events := db.NewEventsStore(time.Now().GoString(), database)
 	rs := action.NewDialog(10, store)
 	go server.Run(PORT, store, events)
+	stats := sysstats.New(appsToMonitor, events)
+	go stats.Run()
 	for {
 		ch := make(chan bool, 1)
 		fmt.Println("Enter password in 10 seconds or pc will reboot")
