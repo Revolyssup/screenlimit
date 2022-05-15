@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/Revolyssup/screenlimit/db/actions"
 )
@@ -20,11 +21,36 @@ func NewEventsStore(time string, db *DB) *EventStore {
 	ev := EventStore{
 		db: db,
 	}
-	ev.Add(time, "initialized the events database", actions.Initialize)
+	ev.Add(time, "initialized the events database", actions.Initialize, "")
 	return &ev
 }
 
-func (e *EventStore) Add(time string, action string, at actions.Type) error {
+type seenpids struct {
+	s  map[string]bool
+	mx sync.Mutex
+}
+
+var seenpidsingleton = seenpids{
+	s: make(map[string]bool),
+}
+
+func (s *seenpids) add(pid string) {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	s.s[pid] = true
+}
+func (s *seenpids) isThere(pid string) bool {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	return s.s[pid]
+}
+
+//Pass pid as empty, it is not stored in the database and only used to uniquely identify the events
+func (e *EventStore) Add(time string, action string, at actions.Type, pid string) {
+	if pid != "" && seenpidsingleton.isThere(pid) {
+		return
+	}
+	seenpidsingleton.add(pid)
 	e.db.mx.Lock()
 	defer e.db.mx.Unlock()
 	fmt.Println("starting to add")
@@ -35,10 +61,10 @@ func (e *EventStore) Add(time string, action string, at actions.Type) error {
 	}).Error
 	if err != nil {
 		fmt.Println("err ", err.Error())
-		return err
+		return
 	}
 	fmt.Println("added event ", action)
-	return nil
+	return
 }
 
 func (e *EventStore) Get(pagesize int, offset int, t actions.Type) (ev []Event, err error) {

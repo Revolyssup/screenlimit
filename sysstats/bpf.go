@@ -14,16 +14,28 @@ import (
 )
 
 type StatCollector struct {
-	programs []string //eg- brave, chrome, firefox or any other app we want to monitor.
+	programs *[]string //eg- brave, chrome, firefox or any other app we want to monitor.
 	store    *db.EventStore
 	buf      string
+	mx       sync.Mutex
 }
 
-func New(prog []string, store *db.EventStore) *StatCollector {
+func New(prog *[]string, store *db.EventStore) *StatCollector {
 	return &StatCollector{
 		store:    store,
 		programs: prog,
 	}
+}
+func (s *StatCollector) AddApp(app string) {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	fmt.Println("adding app ", app)
+	*(s.programs) = append(*(s.programs), app)
+}
+func (s *StatCollector) GetApp() []string {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	return *s.programs
 }
 
 // func (s *StatCollector) Log(ts string, ev string, eventdesciption string) error {
@@ -97,16 +109,15 @@ func copyAndCapture(w io.Writer, r io.Reader) ([]byte, error) {
 
 func (m *StatCollector) Write(p []byte) (n int, err error) {
 	buf := string(p)
-	if strings.Contains(buf, "brave") {
-		lines := strings.Split(string(buf), "\n")
-		for _, line := range lines {
-			for _, app := range m.programs {
-				if strings.Contains(line, app) {
-					fmt.Println("found app , ", app)
-					m.store.Add(time.Now().GoString(), "Child opened "+app, actions.Child)
-				}
+	for _, line := range strings.Split(buf, "\n") {
+		for _, app := range *m.programs {
+			if strings.Contains(line, app) {
+				pid := strings.TrimSuffix(strings.TrimPrefix(line, "pid: "), ",")
+				fmt.Println("pid is ", pid)
+				m.store.Add(time.Now().GoString(), "Child opened "+app, actions.Child, pid)
 			}
 		}
 	}
+
 	return len(p), nil
 }

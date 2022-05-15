@@ -1,6 +1,7 @@
 package db
 
 import (
+	"os"
 	"sync"
 
 	"gorm.io/driver/sqlite"
@@ -20,4 +21,8 @@ func NewDB() (*DB, error) {
 	db.AutoMigrate(&Role{})
 	db.AutoMigrate(&Event{})
 	return &DB{db, sync.Mutex{}}, nil
+}
+
+func (db *DB) Close() {
+	os.Remove("../gorm.db")
 }

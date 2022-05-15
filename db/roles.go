@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"sync"
 )
 
 type Role struct {
@@ -10,10 +11,30 @@ type Role struct {
 }
 type RoleStore struct {
 	db *DB
+	mx sync.Mutex
 }
 
-func NewRoleStore(role string, pass string, db *DB) *RoleStore {
+const ADMIN = "admin"
+
+func NewRoleStore(db *DB) *RoleStore {
 	return &RoleStore{db: db}
+}
+func (s *RoleStore) GetAdminPassword() string {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	role, err := s.GetRole(ADMIN)
+	if err != nil {
+		return ""
+	}
+	return role.Pass
+}
+func (s *RoleStore) SetAdminPassword(pass string) {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	_, err := s.SetRole(ADMIN, pass)
+	if err != nil {
+		return
+	}
 }
 func (s *RoleStore) GetRole(role string) (*Role, error) {
 	s.db.mx.Lock()

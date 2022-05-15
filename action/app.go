@@ -13,10 +13,10 @@ type info struct {
 	pass string
 }
 
-func RunApp(str chan info) {
-	fmt.Println("Should open app")
-	a := app.New()
-	w := a.NewWindow("Screen Limit")
+var a = app.NewWithID("")
+var w = a.NewWindow("Screen Limit")
+
+func getWindowSingleton(str chan info) fyne.Window {
 	w.Resize(fyne.NewSize(400, 400))
 	e_pass := widget.NewEntry()
 	e_pass.SetPlaceHolder("Enter the password...")
@@ -26,12 +26,10 @@ func RunApp(str chan info) {
 		}
 		str <- i
 		e_pass.Refresh()
-		w.Close()
-		a.Quit()
+		w.Hide()
+		fmt.Println("closing window after submit")
 	})
 	c := container.NewVBox(e_pass, e_submit)
-	fmt.Println("c ", c.Layout)
 	w.SetContent(container.NewHSplit(c, c))
-	w.ShowAndRun()
-	fmt.Println("asd")
+	return w
 }
