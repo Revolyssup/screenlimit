@@ -8,6 +8,7 @@ import (
 
 	"github.com/Revolyssup/screenlimit/action"
 	"github.com/Revolyssup/screenlimit/db"
+	"github.com/Revolyssup/screenlimit/policy"
 	"github.com/Revolyssup/screenlimit/server"
 	"github.com/Revolyssup/screenlimit/sysstats"
 )
@@ -49,5 +50,8 @@ func main() {
 		<-c
 		database.Close()
 	}()
-	action.RunCron(100, roleStore, eventStore)
+	action.RunCron(100, roleStore, eventStore, &policy.PolicyRequest{
+		Action: policy.Default,
+		Type:   policy.RESTART,
+	})
 }

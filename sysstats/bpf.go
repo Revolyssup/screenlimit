@@ -10,21 +10,30 @@ import (
 	"time"
 
 	"github.com/Revolyssup/screenlimit/db"
-	"github.com/Revolyssup/screenlimit/db/actions"
+	"github.com/Revolyssup/screenlimit/db/events"
+	"github.com/Revolyssup/screenlimit/policy"
 )
 
 type StatCollector struct {
-	programs *[]string //eg- brave, chrome, firefox or any other app we want to monitor.
-	store    *db.EventStore
-	buf      string
-	mx       sync.Mutex
+	programs    *[]string //eg- brave, chrome, firefox or any other app we want to monitor.
+	actionOnApp map[string]policy.ActionType
+	store       *db.EventStore
+	buf         string
+	mx          sync.Mutex
 }
 
 func New(prog *[]string, store *db.EventStore) *StatCollector {
 	return &StatCollector{
-		store:    store,
-		programs: prog,
+		store:       store,
+		programs:    prog,
+		actionOnApp: make(map[string]policy.ActionType),
 	}
+}
+func (s *StatCollector) AddActionApp(app string, action string) {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	fmt.Println("adding action on app ", app)
+	(s.actionOnApp)[app] = policy.ActionType(action)
 }
 func (s *StatCollector) AddApp(app string) {
 	s.mx.Lock()
@@ -114,7 +123,9 @@ func (m *StatCollector) Write(p []byte) (n int, err error) {
 			if strings.Contains(line, app) {
 				pid := strings.TrimSuffix(strings.TrimPrefix(line, "pid: "), ",")
 				fmt.Println("pid is ", pid)
-				m.store.Add(time.Now().GoString(), "Child opened "+app, actions.Child, pid)
+				m.store.Add(time.Now().GoString(), "Child opened "+app, events.Child, pid)
+				fmt.Println("LOFE ", (m.actionOnApp)[app])
+				(m.actionOnApp)[app].Exec()
 			}
 		}
 	}

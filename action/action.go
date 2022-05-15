@@ -6,16 +6,22 @@ import (
 	"time"
 
 	"github.com/Revolyssup/screenlimit/db"
-	"github.com/Revolyssup/screenlimit/db/actions"
+	"github.com/Revolyssup/screenlimit/db/events"
+	"github.com/Revolyssup/screenlimit/policy"
 )
 
 //Run the cronjob after every 10 seconds
-func RunCron(t int, rs *db.RoleStore, es *db.EventStore) {
+func RunCron(t int, rs *db.RoleStore, es *db.EventStore, p *policy.PolicyRequest) {
 	ch := make(chan bool, 1)
+	polChannel := make(chan policy.PolicyRequest, 1)
 	pass := make(chan info, 10)
 	d := newDialog(t, rs, ch)
 	time.Sleep(100 * time.Second)
 	var wg sync.WaitGroup
+	go func() {
+		wg.Add(1)
+		p.Run(polChannel)
+	}()
 	go func() {
 		wg.Add(1)
 		for {
@@ -26,19 +32,17 @@ func RunCron(t int, rs *db.RoleStore, es *db.EventStore) {
 				d.run(pass)
 				fmt.Println("that was done")
 				if <-ch {
-					es.Add(time.Now().GoString(), "Child entered the password succesfully", actions.Child, "")
+					es.Add(time.Now().GoString(), "Child entered the password succesfully", events.Child, "")
 					continue
 				}
 				fmt.Println("but the wait was never over")
-				es.Add(time.Now().GoString(), "Child entered the incorrect password", actions.Child, "")
+				es.Add(time.Now().GoString(), "Child entered the incorrect password", events.Child, "")
 				time.Sleep(time.Second * 2)
-				es.Add(time.Now().GoString(), "System rebooted", actions.System, "")
-				panic("rebooted")
-				// err := exec.Command("reboot").Run()
-				// if err != nil {
-				// 	fmt.Println("Could not reboot ", err.Error())
-				// 	return
-				// }
+				es.Add(time.Now().GoString(), "System rebooted", events.System, "")
+				polChannel <- policy.PolicyRequest{
+					Action: policy.Default,
+					Type:   policy.RESTART,
+				}
 			}
 		}
 	}()

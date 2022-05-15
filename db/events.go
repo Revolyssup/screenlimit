@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/Revolyssup/screenlimit/db/actions"
+	"github.com/Revolyssup/screenlimit/db/events"
 )
 
 type Event struct {
-	Timestamp  string       `gorm:"timestamp"`
-	Action     string       `gorm:"action"`
-	ActionType actions.Type `gorm:"type"`
+	Timestamp  string      `gorm:"timestamp" json:"timestamp"`
+	Action     string      `gorm:"action" json:"action"`
+	ActionType events.Type `gorm:"type" json:"type"`
 }
 
 type EventStore struct {
@@ -21,7 +21,7 @@ func NewEventsStore(time string, db *DB) *EventStore {
 	ev := EventStore{
 		db: db,
 	}
-	ev.Add(time, "initialized the events database", actions.Initialize, "")
+	ev.Add(time, "initialized the events database", events.Initialize, "")
 	return &ev
 }
 
@@ -46,7 +46,7 @@ func (s *seenpids) isThere(pid string) bool {
 }
 
 //Pass pid as empty, it is not stored in the database and only used to uniquely identify the events
-func (e *EventStore) Add(time string, action string, at actions.Type, pid string) {
+func (e *EventStore) Add(time string, action string, at events.Type, pid string) {
 	if pid != "" && seenpidsingleton.isThere(pid) {
 		return
 	}
@@ -67,7 +67,7 @@ func (e *EventStore) Add(time string, action string, at actions.Type, pid string
 	return
 }
 
-func (e *EventStore) Get(pagesize int, offset int, t actions.Type) (ev []Event, err error) {
+func (e *EventStore) Get(pagesize int, offset int, t events.Type) (ev []Event, err error) {
 	if t == "" {
 		e.db.mx.Lock()
 		err = e.db.Limit(pagesize).Offset(offset).Find(&ev).Error

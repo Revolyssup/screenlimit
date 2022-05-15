@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/Revolyssup/screenlimit/db"
-	"github.com/Revolyssup/screenlimit/db/actions"
+	sysevents "github.com/Revolyssup/screenlimit/db/events"
 	"github.com/Revolyssup/screenlimit/sysstats"
 )
 
@@ -128,7 +128,7 @@ func Run(port string, store *db.RoleStore, events *db.EventStore, pass string, a
 			off := r.URL.Query().Get("offset")
 			t := r.URL.Query().Get("type")
 			psi, offi := getpageoffset(ps, off)
-			evs, err := events.Get(int(psi), int(offi), actions.Type(t))
+			evs, err := events.Get(int(psi), int(offi), sysevents.Type(t))
 			if err != nil {
 				fmt.Println("Error while getting events: ", err.Error())
 				fmt.Fprintf(w, err.Error())
@@ -142,6 +142,23 @@ func Run(port string, store *db.RoleStore, events *db.EventStore, pass string, a
 			}
 			fmt.Println("successfully sent ", string(jsonevents))
 			fmt.Fprintf(w, string(jsonevents))
+			return
+		}
+		if r.Method == http.MethodPost {
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				fmt.Fprint(w, "err "+err.Error())
+				return
+			}
+			var pr = make(map[string]string)
+			err = json.Unmarshal(body, &pr)
+			if err != nil {
+				fmt.Fprint(w, "err "+err.Error())
+				return
+			}
+			s.AddApp(pr["app"])
+			s.AddActionApp(pr["app"], pr["action"])
+			fmt.Fprintf(w, string("Now will "+pr["action"]+" on starting "+pr["app"]))
 			return
 		}
 	})
