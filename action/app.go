@@ -2,9 +2,12 @@ package action
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 )
@@ -29,7 +32,19 @@ func getWindowSingleton(str chan info) fyne.Window {
 		w.Hide()
 		fmt.Println("closing window after submit")
 	})
+	file, _ := os.Open("./download.png")
+	fileopen, _ := ioutil.ReadAll(file)
+	image := canvas.NewImageFromResource(&fyne.StaticResource{
+		StaticName:    "ashish",
+		StaticContent: fileopen,
+	})
+	// image.Resize(fyne.Size{
+	// 	Height: 1000,
+	// 	Width:  1000,
+	// })
 	c := container.NewVBox(e_pass, e_submit)
-	w.SetContent(container.NewHSplit(c, c))
+	con := container.NewVSplit(image, c)
+	w.SetContent(con)
+
 	return w
 }

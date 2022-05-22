@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
 	"github.com/Revolyssup/screenlimit/action"
@@ -16,6 +17,8 @@ import (
 const PASS = "default"
 const PORT = "1401"
 const role = "child"
+
+var Timer = "10"
 
 var appsToMonitor = []string{"brave", "slack"}
 
@@ -50,7 +53,8 @@ func main() {
 		<-c
 		database.Close()
 	}()
-	action.RunCron(10, roleStore, eventStore, &policy.PolicyRequest{
+	t, _ := strconv.Atoi(Timer)
+	action.RunCron(t, roleStore, eventStore, &policy.PolicyRequest{
 		Action: policy.Default,
 		Type:   policy.RESTART,
 	})

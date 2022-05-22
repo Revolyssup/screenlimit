@@ -1,2 +1,2 @@
 server:
- 	sudo go run main.go
+sudo go build -X "main.Timer=30" main.go
