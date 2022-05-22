@@ -43,7 +43,13 @@ func (s *RoleStore) GetRole(role string) (*Role, error) {
 	err := s.db.Where("role = ?", role).Find(&r).Error
 	return &r, err
 }
-
+func (s *RoleStore) GetRoles() ([]Role, error) {
+	s.db.mx.Lock()
+	defer s.db.mx.Unlock()
+	r := []Role{}
+	err := s.db.Find(&r).Error
+	return r, err
+}
 func (s *RoleStore) SetRole(role string, pass string) (*Role, error) {
 	s.db.mx.Lock()
 	defer s.db.mx.Unlock()

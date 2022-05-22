@@ -16,29 +16,31 @@ func RunCron(t int, rs *db.RoleStore, es *db.EventStore, p *policy.PolicyRequest
 	polChannel := make(chan policy.PolicyRequest, 1)
 	pass := make(chan info, 10)
 	d := newDialog(t, rs, ch)
-	time.Sleep(100 * time.Second)
+	time.Sleep(time.Duration(t) * time.Second)
 	var wg sync.WaitGroup
 	go func() {
 		wg.Add(1)
+		defer wg.Done()
 		p.Run(polChannel)
 	}()
 	go func() {
 		wg.Add(1)
+		defer wg.Done()
 		for {
 			fmt.Println("Enter password in 10 seconds or pc will reboot")
 			select {
-			case <-time.After(60 * time.Second):
+			case <-time.After(time.Duration(t) * time.Second):
 				fmt.Println("10 sec over")
 				d.run(pass)
 				fmt.Println("that was done")
 				if <-ch {
-					es.Add(time.Now().GoString(), "Child entered the password succesfully", events.Child, "")
+					es.Add(fmt.Sprintf("%s", time.Now().Format("01-02-2006 15:04:05")), "Child entered the password succesfully", events.Child, "")
 					continue
 				}
 				fmt.Println("but the wait was never over")
-				es.Add(time.Now().GoString(), "Child entered the incorrect password", events.Child, "")
+				es.Add(fmt.Sprintf("%s", time.Now().Format("01-02-2006 15:04:05")), "Child entered the incorrect password", events.Child, "")
 				time.Sleep(time.Second * 2)
-				es.Add(time.Now().GoString(), "System rebooted", events.System, "")
+				es.Add(fmt.Sprintf("%s", time.Now().Format("01-02-2006 15:04:05")), "System rebooted", events.System, "")
 				polChannel <- policy.PolicyRequest{
 					Action: policy.Default,
 					Type:   policy.RESTART,
@@ -47,7 +49,7 @@ func RunCron(t int, rs *db.RoleStore, es *db.EventStore, p *policy.PolicyRequest
 		}
 	}()
 	getWindowSingleton(pass).ShowAndRun()
-	wg.Done()
+	wg.Wait()
 }
 
 type dialog struct {

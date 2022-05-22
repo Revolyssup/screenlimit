@@ -122,13 +122,12 @@ func (m *StatCollector) Write(p []byte) (n int, err error) {
 		for _, app := range *m.programs {
 			if strings.Contains(line, app) {
 				pid := strings.TrimSuffix(strings.TrimPrefix(line, "pid: "), ",")
-				fmt.Println("pid is ", pid)
-				m.store.Add(time.Now().GoString(), "Child opened "+app, events.Child, pid)
-				fmt.Println("LOFE ", (m.actionOnApp)[app])
+				m.store.Add(fmt.Sprintf("%s", time.Now().Format("01-02-2006 15:04:05")), "Child opened "+app, events.Child, pid)
 				(m.actionOnApp)[app].Exec()
+				break
 			}
 		}
+		break
 	}
-
 	return len(p), nil
 }

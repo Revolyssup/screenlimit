@@ -17,42 +17,45 @@ type PassRequest struct {
 	Pass string `json:"pass"`
 }
 
-func auth(w http.ResponseWriter, r *http.Request, pass string) bool {
+func auth(w *http.ResponseWriter, r *http.Request, pass string) bool {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	// fmt.Println("fucking entered")
 	// cookie, err := r.Cookie("pass")
 	// if err != nil {
-	// 	user, rpass, ok := r.BasicAuth()
-	// 	if !ok || user != db.ADMIN {
-	// 		http.Error(w, "Please pass the username and password in the authorization header", http.StatusUnauthorized)
-	// 		return false
-	// 	}
-	// 	if pass != rpass {
-	// 		http.Error(w, "Incorrect password", http.StatusUnauthorized)
-	// 		return false
-	// 	}
-	// 	r.AddCookie(&http.Cookie{
-	// 		Name:  "pass",
-	// 		Value: pass,
-	// 	})
-	// 	return true
+	// user, rpass, ok := r.BasicAuth()
+	// if !ok || user != db.ADMIN {
+	// 	fmt.Println("not ok", user, rpass)
+	// 	// http.Error(*w, "Please pass the username and password in the authorization header", http.StatusUnauthorized)
+	// 	return false
 	// }
+	// fmt.Println("ok", user, rpass)
+
+	// 	if pass != rpass {
+	// 		// http.Error(*w, "Incorrect password", http.StatusUnauthorized)
+	// 		return false
+	// 	}
+	// r.AddCookie(&http.Cookie{
+	// 	Name:  "pass",
+	// 	Value: pass,
+	// })
+	// c, _ := r.Cookie("pass")
+	// fmt.Println("c", c)
+	return true
+
+	// fmt.Println("here")
 	// if cookie.Value != pass {
 	// 	return false
 	// }
-	return true
+	// return true
 }
 
 func Run(port string, store *db.RoleStore, events *db.EventStore, pass string, apps *[]string, s *sysstats.StatCollector) {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if !auth(w, r, pass) {
-			http.Redirect(w, r, "/login", http.StatusMovedPermanently)
-			return
-		}
-	})
-	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./server/static/login.html")
+
+	http.HandleFunc("/signin", func(w http.ResponseWriter, r *http.Request) {
+		auth(&w, r, store.GetAdminPassword())
 	})
 	http.HandleFunc("/api/app", func(w http.ResponseWriter, r *http.Request) {
-		if !auth(w, r, store.GetAdminPassword()) {
+		if !auth(&w, r, store.GetAdminPassword()) {
 			return
 		}
 		if r.Method == http.MethodGet {
@@ -89,17 +92,27 @@ func Run(port string, store *db.RoleStore, events *db.EventStore, pass string, a
 		return
 	})
 	http.HandleFunc("/api/roles", func(w http.ResponseWriter, r *http.Request) {
-		if !auth(w, r, store.GetAdminPassword()) {
+		if !auth(&w, r, store.GetAdminPassword()) {
 			return
 		}
 		if r.Method == http.MethodGet {
-			role := r.URL.Query().Get("role")
-			r, err := store.GetRole(role)
+			r, err := store.GetRoles()
 			if err != nil {
 				fmt.Fprint(w, "err "+err.Error())
 				return
+
 			}
-			b, _ := json.Marshal(r)
+			roles := make(map[string]interface{}, 0)
+			roles["data"] = r
+			b, _ := json.Marshal(roles)
+			// role := r.URL.Query().Get("role")
+			// r, err := store.GetRole(role)
+			// if err != nil {
+			// 	fmt.Fprint(w, "err "+err.Error())
+			// 	return
+
+			// }
+			// b, _ := json.Marshal(r)
 			w.Write(b)
 			return
 		}
@@ -120,9 +133,10 @@ func Run(port string, store *db.RoleStore, events *db.EventStore, pass string, a
 	})
 
 	http.HandleFunc("/api/events", func(w http.ResponseWriter, r *http.Request) {
-		if !auth(w, r, store.GetAdminPassword()) {
+		if !auth(&w, r, store.GetAdminPassword()) {
 			return
 		}
+		fmt.Println(w.Header().Get("Access-Control-Allow-Origin"))
 		if r.Method == http.MethodGet {
 			ps := r.URL.Query().Get("page_size")
 			off := r.URL.Query().Get("offset")
@@ -134,7 +148,9 @@ func Run(port string, store *db.RoleStore, events *db.EventStore, pass string, a
 				fmt.Fprintf(w, err.Error())
 				return
 			}
-			jsonevents, err := json.Marshal(evs)
+			res := make(map[string]interface{}, 0)
+			res["data"] = evs
+			jsonevents, err := json.Marshal(res)
 			if err != nil {
 				fmt.Println("Error while parsing events: ", err.Error())
 				fmt.Fprintf(w, err.Error())
@@ -162,6 +178,14 @@ func Run(port string, store *db.RoleStore, events *db.EventStore, pass string, a
 			return
 		}
 	})
+	// http.HandleFunc("/home", func(w http.ResponseWriter, r *http.Request) {
+	// 	if !auth(&w, r, pass) {
+	// 		fmt.Println("here brpooooo")
+	// 		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+	// 		return
+	// 	}
+	// 	http.ServeFile(w, r, "./server/build")
+	// })
 	http.ListenAndServe(":"+port, nil)
 }
 

@@ -10,6 +10,7 @@ const Default = "failed attempt"
 const (
 	RESTART  ActionType = "ActionRestart"
 	SHUTDOWN ActionType = "ActionShutdown"
+	Log      ActionType = "ActionLog"
 )
 
 type PolicyRequest struct {
@@ -40,6 +41,8 @@ func (r ActionType) Exec() {
 		// 	return
 		// }
 		panic("rebooted")
+	case Log:
+
 	}
 
 }
@@ -47,5 +50,3 @@ func (r ActionType) Exec() {
 func (r ActionType) String() string {
 	return string(r)
 }
-
-type shutdown struct{}

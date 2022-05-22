@@ -15,7 +15,7 @@ import (
 
 const PASS = "default"
 const PORT = "1401"
-const role = db.ADMIN
+const role = "child"
 
 var appsToMonitor = []string{"brave", "slack"}
 
@@ -37,7 +37,7 @@ func main() {
 	}
 
 	//initialize the event store which will be used by any thing that wants to log events into the database
-	eventStore := db.NewEventsStore(time.Now().GoString(), database)
+	eventStore := db.NewEventsStore(fmt.Sprintf("%s", time.Now().Format("01-02-2006 15:04:05")), database)
 	// start the aggregator
 	stats := sysstats.New(&appsToMonitor, eventStore)
 	go stats.Run()
@@ -50,7 +50,7 @@ func main() {
 		<-c
 		database.Close()
 	}()
-	action.RunCron(100, roleStore, eventStore, &policy.PolicyRequest{
+	action.RunCron(10, roleStore, eventStore, &policy.PolicyRequest{
 		Action: policy.Default,
 		Type:   policy.RESTART,
 	})
